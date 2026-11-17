@@ -1,0 +1,47 @@
+services:
+  convertidortts-api:
+    image: convertidortts:V1.0
+    build: ./ConvertidorTTS
+    pull_policy: build
+    container_name: TTS-API
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ASPNETCORE_HOST: convertidortts-DB
+      ASPNETCORE_DB: ${POSTGRES_DB:?Define el POSTGRES_DB en .env}
+      ASPNETCORE_USER: ${POSTGRES_USER:?Define el POSTGRES_USER en .env}
+      ASPNETCORE_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en .env}
+    networks:
+      - tts-red
+    depends_on:
+      convertidortts-DB:
+        condition: service_healthy
+    restart: unless-stopped
+
+
+  convertidortts-DB:
+    image: postgres:17
+    container_name: TTS-DB
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Define POSTGRES_DB en .env}
+      POSTGRES_USER: ${POSTGRES_USER:?Define POSTGRES_USER en .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en .env}
+    volumes:
+      - TTSvolumen:/var/lib/postgres/data
+    networks:
+      - tts-red
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -h 127.0.0.1 -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  TTSvolumen:
+
+networks:
+  tts-red:
